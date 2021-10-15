@@ -1,54 +1,36 @@
 -- RH
 CREATE VIEW KPI_HR AS(
 WITH employee_rank AS(
-    SELECT
-        YEAR(payments.paymentDate) AS payment_year,
-        MONTH(payments.paymentDate) AS payment_month,
-        ROW_NUMBER() OVER(
-            PARTITION BY YEAR(payments.paymentDate),
-            MONTH(payments.paymentDate)
-            order by
-                SUM(amount) DESC
-        ) as row_num,
-        employees.lastName,
-        employees.firstName,
-        SUM(payments.amount) as turnover
-    FROM
-        employees
-        JOIN customers ON employees.employeeNumber = customers.salesRepEmployeeNumber
-        JOIN payments ON customers.customerNumber = payments.customerNumber
-    WHERE
-        (
-            payments.paymentDate > curdate() - interval (dayofmonth(curdate()) - 1) day - interval 6 month
-        )
-        AND (MONTH(payments.paymentDate) != MONTH(curdate()))
-    GROUP by
-        YEAR(payments.paymentDate),
-        MONTH(payments.paymentDate),
-        employees.employeeNumber
-)
+ SELECT
+ YEAR(payments.paymentDate) AS payment_year,
+ MONTH(payments.paymentDate) AS payment_month,
+ ROW_NUMBER() OVER(
+ PARTITION BY YEAR(payments.paymentDate),
+ MONTH(payments.paymentDate)
+ order by SUM(amount) DESC) as row_num,
+ employees.lastName,
+ employees.firstName,
+ SUM(payments.amount) as turnover
+ FROM
+ employees
+ JOIN customers ON employees.employeeNumber = customers.salesRepEmployeeNumber
+ JOIN payments ON customers.customerNumber = payments.customerNumber
+ WHERE
+ (payments.paymentDate > curdate() - interval (dayofmonth(curdate()) - 1) day - interval 6 month)
+ AND (MONTH(payments.paymentDate) != MONTH(curdate()))
+ GROUP by
+ YEAR(payments.paymentDate),
+ MONTH(payments.paymentDate),
+ employees.employeeNumber)
 SELECT
-    STR_TO_DATE(
-        CONCAT(
-            payment_year,
-            '-',
-            '0',
-            payment_month,
-            '-01'
-        ),
-        '%Y-%m-%d'
-    ) as payment_date,
-    row_num,
-    CONCAT(lastName, ' ', firstName),
-    turnover
-FROM
-    employee_rank
-WHERE
-    row_num = '1'
-    or row_num = '2'
-ORDER BY
-    1 DESC,
-    row_num);
+STR_TO_DATE(
+CONCAT(payment_year,'-', '0',payment_month,'-01'),'%Y-%m-%d') as payment_date,
+row_num,
+CONCAT(lastName, ' ', firstName),
+turnover
+FROM employee_rank
+WHERE row_num = '1' or row_num = '2'
+ORDER BY 1 DESC, row_num);
     
 SELECT offices.country, 
 SUM(payments.amount) as turnover
